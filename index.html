@@ -1,0 +1,401 @@
+<?php
+	
+	?>
+<!DOCTYPE html>
+<html ng-app="wsscat">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=no">
+		<title></title>
+	</head>
+	<!--angular框架-->
+	<!--<script type="text/javascript" src="dist/js/angular.js"></script>-->
+	<!--<script type="text/javascript" src="dist/js/ionic.js" ></script>-->
+	<script type="text/javascript" src="dist/js/ionic.bundle.js"></script>
+	<!--angular路由支持文件-->
+	<script type="text/javascript" src="dist/js/angular-route.js"></script>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=jKaZX2RsTYAxYuq5wf2lCv6GaQfzYyin"></script>
+	<link rel="stylesheet" type="text/css" href="dist/css/ionic.css?ver=1.0" />
+	<link rel="stylesheet" href="dist/css/base.css" />
+
+	<body>
+		<!--header头-->
+		<header>
+			日日头条
+		</header>
+		<aside>
+			<isnavred></isnavred>
+		</aside>
+		<!--渲染视图-->
+		<div ng-view=""></div>
+	</body>
+	<script>
+		var app = angular.module('wsscat', ['ngRoute', 'ionic']);
+		app.config(function($routeProvider) {
+				$routeProvider.when('/index', {
+						controller: 'indexCtrl',
+						templateUrl: 'view/index.html'
+					})
+					//游戏焦点的路由
+					.when('/game', {
+						controller: 'gameCtrl',
+						templateUrl: 'view/game.html'
+					})
+					.when('/game/:id', {
+						controller: 'gameDetailCtrl',
+						templateUrl: 'view/gameDetail.html'
+					})
+					//地图
+					.when('/map', {
+						controller: 'mapCtrl',
+						templateUrl: 'view/map.html'
+					})
+					//登錄
+					.when('/login', {
+						controller: 'loginCtrl',
+						templateUrl: 'view/login.html'
+					})
+					//註冊
+					.when('/register', {
+						controller: 'registerCtrl',
+						templateUrl: 'view/register.html'
+					})
+					//切換頁面
+					.when('/set', {
+						controller: 'setCtrl',
+						templateUrl: 'view/setting.html'
+					})
+					//如果找不到对应的路由那就跳到index模版文件
+					.otherwise({
+						redirectTo: '/index'
+					})
+			})
+			//定义了一个主页控制器
+		app.controller('indexCtrl', ['$scope', '$http', '$rootScope', '$ionicLoading', '$timeout', 'swipe', function($scope, $http, $rootScope, $ionicLoading, $timeout, swipe) {
+			console.log(swipe);
+			swipe.method(function(){
+				alert("123");
+			})
+			//用ionic的菊花效果
+			//出现
+			$ionicLoading.show({
+				template: 'Loading',
+			});
+			//$ionicLoading.hide();
+			//进来navbar的状态
+			//推荐页的状态
+			//$rootScope.isNavRed1 = true;
+			//游戏页的状态
+			//$rootScope.isNavRed2 = false;
+			//http://10.16.151.25/news/baiduApi2.php?num=10&page=1
+			//开始显示的条数
+			$scope.offset = 5;
+			//这个是刚进入页面时候，数据没请求回来前出现一个loading
+			$scope.loading = true;
+			$scope.downRefresh = true;
+
+			/*var swipe = function(callback) {
+				var touch = {}
+				document.getElementsByTagName('body')[0].addEventListener('touchstart', function(e) {
+					touch.x1 = e.targetTouches[0].pageX;
+					//点击的时候所在的y坐标
+					touch.y1 = e.targetTouches[0].pageY;
+				})
+
+				var abc = function(e) {
+					touch.x2 = e.changedTouches[0].pageX;
+					//点击滑动后所在的y坐标
+					touch.y2 = e.changedTouches[0].pageY;
+					var swiDirection = direction(touch.x1, touch.x2, touch.y1, touch.y2)
+					if(swiDirection == 'top') {
+						console.log(callback);
+						callback();
+					} else if(swiDirection == 'left') {
+						window.location.href = "#/game";
+					}
+				}
+				document.getElementsByTagName('body')[0].addEventListener('touchend', abc)
+			}*/
+			/*swipe(function() {
+				alert('123');
+			});*/
+
+			//swipe.method("left", function() {})
+
+			$scope.doRefresh = loadMoreData = function() {
+				$http.get('baiduApi2.php', {
+						params: {
+							num: $scope.offset,
+							page: '1',
+							word: '广州',
+						}
+					})
+					/*$http({
+							method: 'post',
+							url: 'http://10.16.151.25/news/baiduApi3.php',
+							params: {
+								num: $scope.offset,
+								page: '1',
+							},
+
+							data:{
+								num: $scope.offset,
+								page:'1',
+							}
+						})*/
+					.success(function(data) {
+						//这个是请求完数据之后让loading消失
+						$scope.loading = false;
+						$scope.downRefresh = false;
+						$ionicLoading.hide();
+						if($scope.$root.$$phase != '$apply' && $scope.$root.$$phase != '$digest') {
+							$scope.$apply();
+						}
+						console.log(data);
+						$scope.news = data.newslist;
+						console.log($scope.news);
+					})
+			}
+
+			loadMoreData($scope.offset);
+			$scope.loadMore = function() {
+				$scope.loading = true;
+				//自定义偏移量（点击查看更多增加的条数）
+				$scope.offset += 5;
+				//$scope.offset++;
+				loadMoreData($scope.offset);
+			}
+		}])
+
+		app.controller('gameCtrl', ['$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
+			//推荐页的状态
+			//$rootScope.isNavRed1 = false;
+			//游戏页的状态
+			//$rootScope.isNavRed2 = true;
+			$scope.loading = true;
+			var loadMoreData = function() {
+				$http.get('baiduApi3.php', {
+						params: {
+							channelId: '5572a108b3cdc86cf39001d6',
+						}
+					})
+					.success(function(data) {
+						$scope.loading = false;
+						console.log(data);
+						$scope.news = data.showapi_res_body.pagebean.contentlist;
+						console.log($scope.news);
+					})
+			}
+
+			loadMoreData($scope.offset);
+			$scope.loadMore = function() {
+				$scope.loading = true;
+				loadMoreData($scope.offset);
+			}
+		}])
+
+		app.controller('gameDetailCtrl', ['$scope', '$http', '$routeParams', function($scope, $http, $routeParams) {
+			$http({
+				method: 'get',
+				url: 'baiduApi3.php',
+				params: {
+					channelId: '5572a108b3cdc86cf39001d6',
+				},
+			}).success(function(data) {
+				console.log(data);
+				$scope.new = data.showapi_res_body.pagebean.contentlist[$routeParams.id];
+			})
+		}])
+
+		app.controller('mapCtrl', ['$scope', '$http', '$routeParams', function($scope, $http, $routeParams) {
+			var map = new BMap.Map("allmap");
+			var point = new BMap.Point(116.331398, 39.897445);
+			map.centerAndZoom(point, 12);
+		}])
+
+		app.directive('isnavred', ['$location', function($location) {
+			return {
+				restrict: 'EA', //标签和属性的写法激活此组件
+				replace: true,
+				transclude: true,
+				template: '<p id="nav">' +
+					'<a ng-href="#/index" class="isNavRed"><span>推荐</span></a>' +
+					'<a ng-href="#/game"><span>游戏</span></a>' +
+					'<span>热点</span>' +
+					'<span>社会</span>' +
+					'</p>',
+				link: function(scope, element, attrs) {
+					console.log(location.hash);
+					console.log(scope);
+					var nav = document.getElementById('nav')
+					var navs = nav.getElementsByTagName('a')
+					switch(location.hash) {
+						case '#/index':
+							angular.element(navs).removeClass('isNavRed');
+							angular.element(navs[0]).addClass('isNavRed');
+							break;
+						case '#/game':
+							angular.element(navs).removeClass('isNavRed');
+							angular.element(navs[1]).addClass('isNavRed');
+							break;
+					}
+
+					angular.element(navs).on('click', function() {
+						//做全局的清楚
+						angular.element(navs).removeClass('isNavRed');
+						angular.element(this).addClass('isNavRed');
+					})
+				}
+			}
+		}])
+
+		app.service('swipe', [function() {
+			return {
+				method: function(direct, callback) {
+					var callbackTop, callbackdown, callbackLeft, callbackRight;
+					//判断方向，执行回调
+					switch(direct) {
+						case 'top':
+							callbackTop = callback;
+							break;
+						case 'bottom':
+							callbackBottom = callback;
+							break;
+						case 'left':
+							callbackLeft = callback;
+							break;
+						case 'right':
+							callbackRight = callback;
+							break;
+					}
+					var touch = {}
+					document.getElementsByTagName('body')[0].addEventListener('touchstart', function(e) {
+						console.log("点击滑动前");
+						touch.x1 = e.targetTouches[0].pageX;
+						touch.y1 = e.targetTouches[0].pageY;
+						console.log('X:' + e.targetTouches[0].pageX + ' Y:' + e.targetTouches[0].pageY);
+						//$scope.$apply();
+					})
+					var ab = function(e) {
+						console.log("点击滑动后");
+						touch.x2 = e.changedTouches[0].pageX;
+						touch.y2 = e.changedTouches[0].pageY;
+						console.log('X:' + e.changedTouches[0].pageX + ' Y:' + e.changedTouches[0].pageY)
+						console.log(direction(touch.x1, touch.x2, touch.y1, touch.y2));
+						var swiDirection = direction(touch.x1, touch.x2, touch.y1, touch.y2)
+						if(swiDirection == 'bottom') {
+							//手动刷新
+							callbackBottom();
+							//$scope.$apply();
+						} else if(swiDirection == 'top') {
+							//手动刷新
+							console.log(callbackTop)
+							callbackTop();
+							//$scope.$apply();
+						} else if(swiDirection == 'left') {
+							//手动刷新
+							console.log(callbackLeft)
+							callbackLeft();
+							//$scope.$apply();
+						}
+					}
+
+					function direction(xStart, xEnd, yStart, yEnd) {
+						return Math.abs(xStart - xEnd) >= Math.abs(yStart - yEnd) ? (xStart >= xEnd ? "left" : "right") : (yStart >= yEnd ? "top" : "bottom");
+					}
+					document.getElementsByTagName('body')[0].addEventListener('touchend', ab);
+				}
+			}
+		}])
+		
+		app.controller('loginCtrl',['$scope','$http','$location','$window',function($scope,$http,$location,$window){
+			//用戶賬號
+			$scope.name;
+			//用戶密碼
+			$scope.password;
+			//登錄方法
+			$scope.login = function(){
+				console.log("輸入的賬號為："+$scope.name)
+				console.log("輸入的賬密碼為："+$scope.password)
+				//post請求
+				$http.get('login.php',{
+					params:{
+						name:$scope.name,
+						//rsa加密
+						password:$scope.password
+					}
+				}).success(function(data){
+					console.log(data);
+					localStorage.setItem('token',data.token);
+					xss = data.xss
+					console.log(xss);
+					document.getElementById('input').src = xss;
+				})
+			}
+			
+			$scope.regiter = function(){
+				//window.location.href = "#/register";
+				//$location.href = "#/register";
+				$window.location  = "#/register";
+			}
+		}])
+		
+		app.controller('registerCtrl',['$scope','$http','$location','$window',function($scope,$http,$location,$window){
+			//用戶賬號
+			$scope.name;
+			//用戶密碼
+			$scope.password;
+			//登錄方法
+			$scope.register = function(){
+				console.log("輸入的賬號為："+$scope.name)
+				console.log("輸入的賬密碼為："+$scope.password)
+				console.log($scope.name.length);
+				//校驗代碼
+				if($scope.name.length<=2){
+					alert("輸入長度不能小於2")
+					return;
+				}
+				//post請求
+				$http.get('login.php',{
+					params:{
+						name:$scope.name,
+						//rsa加密
+						password:$scope.password
+					}
+				}).success(function(data){
+					console.log(data);
+					localStorage.setItem('token',data.token);
+					xss = data.xss
+					console.log(xss);
+					window.location.href = "#/index"; 
+				})
+			}
+			
+			$scope.login = function(){
+				//window.location.href = "#/login";
+				//$location.href = "#/login";
+				$window.location  = "#/login";
+			}
+		}])
+		
+		app.controller('setCtrl',['$scope',function($scope){
+			$scope.page1 =true
+			$scope.page2 =false
+			$scope.show = function(page){
+				if(page==1){
+					$scope.page1 =true;
+					$scope.page2 =false;
+				}else if(page==2){
+					$scope.page2 = true;
+					$scope.page1 =false
+				}
+			}
+		}])
+	</script>
+<!--XSS攻擊-->
+<!--<img src="123.jpg"  />-->
+<!--<img src=""/><script>&nbsp;</script><img src=""  />-->
+
+<!--<input value="" />-->
+</html>
